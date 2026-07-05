@@ -1,0 +1,18 @@
+# Forces FastDDS onto UDP (instead of the default shared-memory transport) so
+# ROS 2 topics can cross from this container into the separate ROS container.
+# Isaac Sim and the ROS container share the host network but not an IPC
+# namespace, so shared-memory DDS transport never reaches the ROS side.
+#
+# The FASTRTPS_DEFAULT_PROFILES_FILE env var and the fastdds.xml content are
+# per docs ("Enabling the ROS 2 Bridge > On Linux with Fast DDS > Multiple
+# Machines or Docker"), which documents this for a manual `docker run`:
+# https://docs.isaacsim.omniverse.nvidia.com/6.0.1/installation/install_ros.html
+# Delivering it via a Compose override file (rather than a docker run flag)
+# is our own adaptation, since NVIDIA's compose-based examples don't cover a
+# separate ROS container needing the same fix.
+services:
+  isaac-sim:
+    environment:
+      - FASTRTPS_DEFAULT_PROFILES_FILE=/isaac-sim/.ros/fastdds.xml
+    volumes:
+      - ${PROJECT_ROOT}/infra/fastdds.xml:/isaac-sim/.ros/fastdds.xml:ro

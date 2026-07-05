@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ROS 2 / colcon
+ros2_ws/install/
+ros2_ws/log/
+
+# Generated datasets, checkpoints, and other large artifacts
+data/
+checkpoints/
+*.usd
+*.usda
+*.usdc
+

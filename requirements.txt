@@ -1,0 +1,7 @@
+# Starter pins for the ROS dev container's venv (infra/ros.Dockerfile)
+torch==2.12.1
+torchvision==0.27.1
+numpy==2.5.0
+pandas>=2.2
+matplotlib>=3.9
+pytest>=8.0

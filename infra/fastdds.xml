@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Forces UDPv4 transport and disables the shared-memory transport.
+  Required whenever ROS 2 endpoints are split across separate containers
+  or machines - see the Isaac Sim ROS 2 docs, "Enabling the ROS 2 Bridge
+  > On Linux with Fast DDS > Multiple Machines or Docker".
+  Mounted into both the isaac-sim and ROS containers.
+
+  Source: https://docs.isaacsim.omniverse.nvidia.com/6.0.1/installation/install_ros.html
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <transport_descriptors>
+        <transport_descriptor>
+            <transport_id>UdpTransport</transport_id>
+            <type>UDPv4</type>
+        </transport_descriptor>
+    </transport_descriptors>
+
+    <participant profile_name="udp_transport_profile" is_default_profile="true">
+        <rtps>
+            <userTransports>
+                <transport_id>UdpTransport</transport_id>
+            </userTransports>
+            <useBuiltinTransports>false</useBuiltinTransports>
+        </rtps>
+    </participant>
+</profiles>
