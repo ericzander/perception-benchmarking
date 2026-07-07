@@ -15,6 +15,7 @@ docker run -d \
     --name robot-benchmark-ros \
     --network host \
     --gpus all \
+    --user "$(id -u):$(id -g)" \
     --env ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}" \
     --env RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
     --env FASTRTPS_DEFAULT_PROFILES_FILE=/root/.ros/fastdds.xml \
