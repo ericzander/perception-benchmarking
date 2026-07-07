@@ -27,6 +27,10 @@ COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt
 
+# The base image's ros_entrypoint.sh only sources this for CMD (sleep
+# infinity below), not for `docker exec` shells, so source it here too.
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /root/.bashrc
+
 WORKDIR /workspace/project
 
 CMD ["sleep", "infinity"]
