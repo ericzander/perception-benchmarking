@@ -22,8 +22,14 @@ Robotic perception benchmarking with Isaac Sim, ROS2, and PyTorch with NVIDIA Br
     > $ bash infra/start-ros.sh
 2. Get a ROS2 shell
     > $ docker exec -it robot-benchmark-ros bash
-2. **Optional**: Test Isaac Sim's internal ROS
+3. **Optional**: Test Isaac Sim's internal ROS with clock
     - Ensure ROS2 bridge is enabled in extensions (should be on by default)
     - Publish `/clock` by creating the ROS2 action graph and playing
     - Verify in ROS2 shell
         > $ ros2 topic echo /clock
+
+### Accessing Camera Data
+
+1. Create a scene in Isaac Sim with a camera
+2. Create a ROS2 action graph for the camera
+3. WIP
