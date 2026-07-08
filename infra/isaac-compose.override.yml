@@ -10,8 +10,13 @@
 # Delivering it via a Compose override file (rather than a docker run flag)
 # is our own adaptation, since NVIDIA's compose-based examples don't cover a
 # separate ROS container needing the same fix.
+# user override: the base compose file hardcodes uid 1234, which this host's
+# Docker silently remaps to nobody on write (see start-isaac.sh/bootstrap.sh).
+# Use the real host uid/gid instead so generated/cached files stay owned by
+# whoever's running this.
 services:
   isaac-sim:
+    user: "${HOST_UID}:${HOST_GID}"
     environment:
       - FASTRTPS_DEFAULT_PROFILES_FILE=/isaac-sim/.ros/fastdds.xml
     volumes:

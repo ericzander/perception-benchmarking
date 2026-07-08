@@ -26,17 +26,25 @@ if [[ "$SCRIPT_PATH" != "$PROJECT_ROOT"/* ]]; then
 fi
 CONTAINER_SCRIPT_PATH="/workspace/project${SCRIPT_PATH#"$PROJECT_ROOT"}"
 
-# --network host matches start-isaac.sh/start-ros.sh, in case the script
-# talks to the ROS container. Cache volumes match start-isaac.sh so shader
-# compilation is reused instead of redone on every run.
+# --network host: matches start-isaac.sh/start-ros.sh, in case the script
+# talks to the ROS container. Cache volumes reuse shader compilation across
+# runs. PYTHONPATH exposes perception/ via plain sys.path. PYTHONUNBUFFERED
+# keeps prints from being lost in a block buffer if the process is piped/killed.
+#
+# --entrypoint overrides the image's default runheadless.sh, which hardcodes
+# the full streaming experience and would make SimulationApp(experience=...)
+# in the script a no-op.
 docker run --rm \
     --network host \
     --gpus all \
-    --user 1234:1234 \
+    --user "$(id -u):$(id -g)" \
+    --entrypoint /isaac-sim/python.sh \
     --env ACCEPT_EULA=Y \
+    --env PYTHONPATH=/workspace/project \
+    --env PYTHONUNBUFFERED=1 \
     --volume "$PROJECT_ROOT:/workspace/project" \
     --volume "$ISAAC_SIM_DATA/cache/main:/isaac-sim/.cache:rw" \
     --volume "$ISAAC_SIM_DATA/cache/computecache:/isaac-sim/.nv/ComputeCache:rw" \
     --workdir /workspace/project \
     "$ISAAC_SIM_IMAGE" \
-    /isaac-sim/python.sh "$CONTAINER_SCRIPT_PATH" "$@"
+    "$CONTAINER_SCRIPT_PATH" "$@"

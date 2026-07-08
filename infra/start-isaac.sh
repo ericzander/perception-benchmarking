@@ -13,6 +13,10 @@ export PROJECT_ROOT
 export ISAACSIM_HOST="$PUBLIC_IP"
 export ISAAC_SIM_IMAGE="nvcr.io/nvidia/isaac-sim:6.0.1"
 export ISAAC_SIM_DATA="$HOME/docker/isaac-sim"
+# See isaac-compose.override.yml: overrides the base compose file's fixed
+# uid 1234, which gets silently remapped to nobody on write on this host.
+export HOST_UID="$(id -u)"
+export HOST_GID="$(id -g)"
 
 cd "$ISAAC_INFRA"
 

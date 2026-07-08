@@ -31,11 +31,13 @@ if [[ ! -d "$ISAAC_INFRA/.git" ]]; then
     git -C "$ISAAC_INFRA" sparse-checkout set tools/docker
 fi
 
-# Cache/config/log/data dirs + chown 1234 (the container's user), exactly as
-# shown in the Brev deployment doc linked above.
+# The Brev deployment doc linked above chowns these to a fixed uid 1234, but
+# on this host that uid gets silently remapped to nobody on write, so files
+# end up unreadable by this user. Use the real host uid/gid instead, and pass
+# it into the containers (see isaac-compose.override.yml, run-script-isaac.sh).
 mkdir -p "$HOME/docker/isaac-sim"/{cache/main,cache/computecache,config,data,logs,pkg}
 mkdir -p "$HOME/.cache/ov/hub"
-sudo chown -R 1234:1234 "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
+sudo chown -R "$(id -u):$(id -g)" "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
 
 # Small ROS 2 development image with this project mounted in at runtime.
 docker build \
