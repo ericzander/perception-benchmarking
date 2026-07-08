@@ -27,6 +27,12 @@ COPY requirements.txt /tmp/requirements.txt
 RUN python -m pip install --upgrade pip \
     && python -m pip install -r /tmp/requirements.txt
 
+# The venv is built as root, but start-ros.sh runs the container as the host
+# user (--user <uid>:<gid>), which is only known at `docker run` time. Open up
+# the venv so that arbitrary runtime UID can still `pip install` into it (e.g.
+# the editable install of perception/ in CMD below).
+RUN chmod -R o+rwX /opt/project-venv
+
 # infra/start-ros.sh runs this container with --user <host UID>:<host GID> so
 # files created in the bind-mounted project (colcon build/, ros2 pkg create,
 # etc.) are owned by the host user instead of root
@@ -35,4 +41,8 @@ RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc
 
 WORKDIR /workspace/project
 
-CMD ["sleep", "infinity"]
+# perception/ only exists once the project is bind-mounted at container start
+# (not at image build time), so the editable install has to happen here
+# rather than in a RUN step above. This makes it automatic on every
+# container start instead of a manual step to remember after start-ros.sh.
+CMD ["bash", "-c", "pip install -e . && exec sleep infinity"]
