@@ -31,13 +31,18 @@ if [[ ! -d "$ISAAC_INFRA/.git" ]]; then
     git -C "$ISAAC_INFRA" sparse-checkout set tools/docker
 fi
 
-# The Brev deployment doc linked above chowns these to a fixed uid 1234, but
-# on this host that uid gets silently remapped to nobody on write, so files
-# end up unreadable by this user. Use the real host uid/gid instead, and pass
-# it into the containers (see isaac-compose.override.yml, run-script-isaac.sh).
+# Per the Brev deployment doc, chown to uid 1234 (the image's own user; see
+# isaac-compose.override.yml/run-script-isaac.sh for why it stays that way).
+# Group is set to the host user's and made writable so the container
+# (running with umask 002) leaves files here manageable without sudo.
 mkdir -p "$HOME/docker/isaac-sim"/{cache/main,cache/computecache,config,data,logs,pkg}
 mkdir -p "$HOME/.cache/ov/hub"
-sudo chown -R "$(id -u):$(id -g)" "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
+sudo chown -R "1234:$(id -g)" "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
+sudo chmod -R u+rwX,g+rwX "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
+
+# Same reasoning for the project repo: run-script-isaac.sh runs scripts
+# against it as uid 1234, so new output dirs need a group-writable ancestor.
+find "$PROJECT_ROOT" -type d -not -path '*/.git*' -exec chmod g+w {} +
 
 # Small ROS 2 development image with this project mounted in at runtime.
 docker build \

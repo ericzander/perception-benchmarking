@@ -10,17 +10,14 @@
 # Delivering it via a Compose override file (rather than a docker run flag)
 # is our own adaptation, since NVIDIA's compose-based examples don't cover a
 # separate ROS container needing the same fix.
-# user override: the base compose file hardcodes uid 1234, which this host's
-# Docker silently remaps to nobody on write (see start-isaac.sh/bootstrap.sh).
-# Use the real host uid/gid instead so generated/cached files stay owned by
-# whoever's running this. group_add keeps the process in the image's baked-in
-# isaac-sim group (gid 1234), since /isaac-sim itself is 0750 root:isaac-sim
-# and would otherwise be unreadable to the host uid (runheadless.sh: Permission denied).
+# Keep uid 1234 (the image's own user, which owns nearly all of /isaac-sim,
+# including undocumented cache paths a host-uid override would break). Only
+# the group is swapped to the host's, with umask 002, so writes into the
+# pre-chowned host dirs below (see bootstrap.sh) come out group-writable too.
 services:
   isaac-sim:
-    user: "${HOST_UID}:${HOST_GID}"
-    group_add:
-      - "1234"
+    user: "1234:${HOST_GID}"
+    entrypoint: ["/bin/sh", "-c", "umask 002 && exec /isaac-sim/runheadless.sh \"$$@\"", "--"]
     environment:
       - FASTRTPS_DEFAULT_PROFILES_FILE=/isaac-sim/.ros/fastdds.xml
     volumes:

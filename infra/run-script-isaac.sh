@@ -31,14 +31,19 @@ CONTAINER_SCRIPT_PATH="/workspace/project${SCRIPT_PATH#"$PROJECT_ROOT"}"
 # runs. PYTHONPATH exposes perception/ via plain sys.path. PYTHONUNBUFFERED
 # keeps prints from being lost in a block buffer if the process is piped/killed.
 #
-# --entrypoint overrides the image's default runheadless.sh, which hardcodes
+# Keep uid 1234 (the image's own user; see isaac-compose.override.yml and
+# bootstrap.sh for why). Group swapped to the host's, umask loosened to 002,
+# so writes into the pre-chowned host dirs below come out group-writable too.
+#
+# entrypoint is wrapped in a shell for the umask, then chained into
+# python.sh instead of the image's default runheadless.sh (which hardcodes
 # the full streaming experience and would make SimulationApp(experience=...)
-# in the script a no-op.
+# in the script a no-op).
 docker run --rm \
     --network host \
     --gpus all \
-    --user "$(id -u):$(id -g)" \
-    --entrypoint /isaac-sim/python.sh \
+    --user "1234:$(id -g)" \
+    --entrypoint /bin/sh \
     --env ACCEPT_EULA=Y \
     --env PYTHONPATH=/workspace/project \
     --env PYTHONUNBUFFERED=1 \
@@ -47,4 +52,4 @@ docker run --rm \
     --volume "$ISAAC_SIM_DATA/cache/computecache:/isaac-sim/.nv/ComputeCache:rw" \
     --workdir /workspace/project \
     "$ISAAC_SIM_IMAGE" \
-    "$CONTAINER_SCRIPT_PATH" "$@"
+    -c 'umask 002 && exec /isaac-sim/python.sh "$@"' sh "$CONTAINER_SCRIPT_PATH" "$@"
