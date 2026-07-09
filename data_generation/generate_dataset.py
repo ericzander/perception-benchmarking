@@ -5,17 +5,18 @@ Standalone Isaac Sim script, run headless through infra/run-script-isaac.sh:
     infra/run-script-isaac.sh data_generation/generate_dataset.py \\
         --tier easy --num-frames 500
 
-Scene: a fixed camera facing three lanes (left/center/right). Each frame,
-a label is sampled uniformly from perception.labels.LABELS first, and the
-scene is then constructed to match it (obstacles placed to block exactly
-the lanes that label requires), so the ground truth is always exact by
-construction rather than inferred after the fact. Lanes not required by
-the label are randomized as distractors (see TierConfig.distractor_probability)
-so the model can't shortcut by assuming untouched lanes are always clear.
+Scene: a fixed camera facing three lanes (left/center/right) over a ground
+plane, with a backdrop wall past the far lane distance. Each frame, a label
+is sampled uniformly from perception.labels.LABELS first, and the scene is
+then constructed to match it (obstacles placed to block exactly the lanes
+that label requires), so the ground truth is always exact by construction
+rather than inferred after the fact. Lanes not required by the label are
+randomized as distractors (see TierConfig.distractor_probability) so the
+model can't shortcut by assuming untouched lanes are always clear. Ground/
+backdrop color is also randomized per tier, so surroundings vary too.
 
-RGB and depth (distance_to_camera) are both captured; only RGB is used by
-the initial models, depth is kept around cheaply in case a later modality
-comparison is worth doing
+RGB and depth are both captured; only RGB is used by the initial models,
+depth is kept around cheaply in case a later modality comparison is worth doing
 """
 
 import argparse
@@ -32,7 +33,8 @@ from tiers import TIERS, TierConfig
 LANES = ("left", "center", "right")
 LANE_X = {"left": -1.2, "center": 0.0, "right": 1.2}
 LANE_DISTANCE = (1.5, 3.0)  # meters ahead of the camera
-CAMERA_HEIGHT = 0.3
+CAMERA_HEIGHT = 1.0
+BACKDROP_DISTANCE = LANE_DISTANCE[1] + 3.0
 PARK_POSITION = (0.0, -5.0, -5.0)  # behind the camera, never rendered
 
 # Which lanes must be blocked/clear for each label; lanes absent from a
@@ -110,11 +112,12 @@ def main() -> None:
     from pxr import Gf, UsdGeom, UsdLux
 
     def set_transform(prim, position, rotation_deg=(0.0, 0.0, 0.0), scale=1.0):
+        scale_vec = (scale, scale, scale) if isinstance(scale, (int, float)) else scale
         xformable = UsdGeom.Xformable(prim)
         xformable.ClearXformOpOrder()
         xformable.AddTranslateOp().Set(Gf.Vec3d(*position))
         xformable.AddRotateXYZOp().Set(Gf.Vec3f(*rotation_deg))
-        xformable.AddScaleOp().Set(Gf.Vec3f(scale, scale, scale))
+        xformable.AddScaleOp().Set(Gf.Vec3f(*scale_vec))
 
     def set_color(prim, rgb):
         UsdGeom.Gprim(prim).GetDisplayColorAttr().Set([Gf.Vec3f(*rgb)])
@@ -132,13 +135,28 @@ def main() -> None:
 
     omni.usd.get_context().new_stage()
     rep.orchestrator.set_capture_on_play(False)
-    carb.settings.get_settings().set("/rtx/post/dlss/execMode", 2)  # Quality mode, avoids artifacts at low res
+    # DLSS (default AA) upscales from below its documented 300px minimum at
+    # this resolution; TAA has no such floor.
+    carb.settings.get_settings().set("/rtx/post/aa/op", 1)  # 1 = TAA
+
+    # Orchestrator's first step() waits (default 30s) for a USD ASSETS_LOADED
+    # event that never fires for a purely-procedural stage (no real assets to
+    # load), so it always burns the full wait. Harmless, just slow -- cut it down.
+    carb.settings.get_settings().set("/exts/omni.replicator.core/maxAssetLoadingTime", 0.1)
 
     rep.functional.create.xform(name="World")
     dome_light = rep.functional.create.dome_light(intensity=1000, parent="/World", name="DomeLight")
     camera = rep.functional.create.camera(
         position=(0, 0, CAMERA_HEIGHT), look_at=(0, 3, CAMERA_HEIGHT), parent="/World", name="Camera"
     )
+
+    # Ground (top face at z=0, where obstacles rest) and a backdrop wall past
+    # the far lane, so obstacles sit in surroundings instead of floating on
+    # the dome light's flat background. Colors randomized per frame below.
+    ground = rep.functional.create.cube(parent="/World", name="Ground")
+    set_transform(ground, (0, BACKDROP_DISTANCE / 2, -0.01), scale=(8, BACKDROP_DISTANCE / 2 + 1, 0.01))
+    backdrop = rep.functional.create.cube(parent="/World", name="Backdrop")
+    set_transform(backdrop, (0, BACKDROP_DISTANCE, 3), scale=(8, 0.01, 3))
 
     shape_creators = {
         "cube": rep.functional.create.cube,
@@ -175,6 +193,14 @@ def main() -> None:
         light_api = UsdLux.LightAPI(dome_light)
         light_api.GetIntensityAttr().Set(intensity)
         light_api.GetColorAttr().Set(Gf.Vec3f(*tint))
+
+        set_color(
+            ground, (tier.ground_color.sample(rng), tier.ground_color.sample(rng), tier.ground_color.sample(rng))
+        )
+        set_color(
+            backdrop,
+            (tier.backdrop_color.sample(rng), tier.backdrop_color.sample(rng), tier.backdrop_color.sample(rng)),
+        )
 
         jitter = tier.camera_position_jitter
         jitter_camera_position(

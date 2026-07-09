@@ -22,3 +22,8 @@ services:
       - FASTRTPS_DEFAULT_PROFILES_FILE=/isaac-sim/.ros/fastdds.xml
     volumes:
       - ${PROJECT_ROOT}/infra/fastdds.xml:/isaac-sim/.ros/fastdds.xml:ro
+      # kit/cache is Kit's RTX shader/pipeline cache (its ${cache} token).
+      # NVIDIA's base compose file doesn't mount it; this container survives
+      # restarts fine either way, but mounting it means a `down`+`up` (or a
+      # rebuild) doesn't force a cold shader recompile either.
+      - ${ISAAC_SIM_DATA}/cache/kit:/isaac-sim/kit/cache:rw

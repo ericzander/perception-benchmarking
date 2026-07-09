@@ -50,6 +50,7 @@ docker run --rm \
     --volume "$PROJECT_ROOT:/workspace/project" \
     --volume "$ISAAC_SIM_DATA/cache/main:/isaac-sim/.cache:rw" \
     --volume "$ISAAC_SIM_DATA/cache/computecache:/isaac-sim/.nv/ComputeCache:rw" \
+    --volume "$ISAAC_SIM_DATA/cache/kit:/isaac-sim/kit/cache:rw" \
     --workdir /workspace/project \
     "$ISAAC_SIM_IMAGE" \
     -c 'umask 002 && exec /isaac-sim/python.sh "$@"' sh "$CONTAINER_SCRIPT_PATH" "$@"

@@ -37,6 +37,11 @@ class TierConfig:
     obstacle_scale: Range  # meters
     obstacle_rotation_deg: Range
 
+    # Ground plane / backdrop wall color, resampled per frame. Gives the
+    # model varied surroundings to generalize across, same as the axes above.
+    ground_color: Range  # per-channel RGB, sampled independently
+    backdrop_color: Range  # per-channel RGB, sampled independently
+
     # +/- meters, applied independently to camera x (lateral) and z (height).
     camera_position_jitter: float
 
@@ -54,6 +59,8 @@ TIERS: dict[str, TierConfig] = {
         obstacle_color=Range(0.2, 0.8),
         obstacle_scale=Range(0.4, 0.6),
         obstacle_rotation_deg=Range(0, 30),
+        ground_color=Range(0.4, 0.6),
+        backdrop_color=Range(0.7, 0.9),
         camera_position_jitter=0.05,
         distractor_probability=0.2,
     ),
@@ -65,6 +72,8 @@ TIERS: dict[str, TierConfig] = {
         obstacle_color=Range(0.05, 0.95),
         obstacle_scale=Range(0.3, 0.8),
         obstacle_rotation_deg=Range(0, 90),
+        ground_color=Range(0.15, 0.85),
+        backdrop_color=Range(0.4, 1.0),
         camera_position_jitter=0.15,
         distractor_probability=0.4,
     ),
@@ -78,6 +87,8 @@ TIERS: dict[str, TierConfig] = {
         obstacle_color=Range(0.0, 1.0),
         obstacle_scale=Range(0.2, 1.1),
         obstacle_rotation_deg=Range(0, 180),
+        ground_color=Range(0.0, 1.0),
+        backdrop_color=Range(0.0, 1.0),
         camera_position_jitter=0.3,
         distractor_probability=0.6,
     ),

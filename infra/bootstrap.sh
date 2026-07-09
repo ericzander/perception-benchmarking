@@ -35,7 +35,7 @@ fi
 # isaac-compose.override.yml/run-script-isaac.sh for why it stays that way).
 # Group is set to the host user's and made writable so the container
 # (running with umask 002) leaves files here manageable without sudo.
-mkdir -p "$HOME/docker/isaac-sim"/{cache/main,cache/computecache,config,data,logs,pkg}
+mkdir -p "$HOME/docker/isaac-sim"/{cache/main,cache/computecache,cache/kit,config,data,logs,pkg}
 mkdir -p "$HOME/.cache/ov/hub"
 sudo chown -R "1234:$(id -g)" "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
 sudo chmod -R u+rwX,g+rwX "$HOME/docker/isaac-sim" "$HOME/.cache/ov/hub"
