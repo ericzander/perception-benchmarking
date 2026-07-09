@@ -13,10 +13,14 @@
 # user override: the base compose file hardcodes uid 1234, which this host's
 # Docker silently remaps to nobody on write (see start-isaac.sh/bootstrap.sh).
 # Use the real host uid/gid instead so generated/cached files stay owned by
-# whoever's running this.
+# whoever's running this. group_add keeps the process in the image's baked-in
+# isaac-sim group (gid 1234), since /isaac-sim itself is 0750 root:isaac-sim
+# and would otherwise be unreadable to the host uid (runheadless.sh: Permission denied).
 services:
   isaac-sim:
     user: "${HOST_UID}:${HOST_GID}"
+    group_add:
+      - "1234"
     environment:
       - FASTRTPS_DEFAULT_PROFILES_FILE=/isaac-sim/.ros/fastdds.xml
     volumes:
